@@ -1,7 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+notebook.ipynb
+
 # Terraform
 .terraform/
 *.tfstate
 *.tfstate.*
 crash.log
 terraform.tfvars
+
 

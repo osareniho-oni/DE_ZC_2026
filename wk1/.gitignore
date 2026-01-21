@@ -17,5 +17,3 @@ notebook.ipynb
 *.tfstate.*
 crash.log
 terraform.tfvars
-
-
