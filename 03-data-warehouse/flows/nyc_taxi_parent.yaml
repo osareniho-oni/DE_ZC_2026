@@ -1,0 +1,75 @@
+id: nyc_taxi_parent
+namespace: zoomcamp
+
+description: |
+  Parent orchestration flow for NYC Taxi data (Yellow taxis only, January-June 2024).
+  Supports:
+    - Manual year-range backfills
+    - Manual month-specific backfills
+    - Automatic scheduled monthly runs
+
+inputs:
+  - id: taxi
+    type: SELECT
+    values: [yellow]
+    defaults: yellow
+
+  - id: start_year
+    type: INT
+    defaults: 2024
+
+  - id: end_year
+    type: INT
+    defaults: 2024
+
+  - id: months
+    type: ARRAY
+    itemType: STRING
+    defaults: ["01","02","03","04","05","06"]
+    description: "List of months to process (defaults to Jan-Jun 2024)"
+
+triggers:
+  - id: yellow_monthly
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 2 1 * *"
+    inputs:
+      taxi: yellow
+      start_year: 2024
+      end_year: 2024
+      months:
+        - "{{ now().minusMonths(1).format('MM') }}"
+
+tasks:
+  - id: years
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ range(inputs.start_year, inputs.end_year) }}"
+    tasks:
+
+      - id: months
+        type: io.kestra.plugin.core.flow.ForEach
+        values: >-
+          {% if inputs.months is defined and inputs.months|length > 0 %}
+            {{ inputs.months }}
+          {% else %}
+            ["01","02","03","04","05","06","07","08","09","10","11","12"]
+          {% endif %}
+        tasks:
+
+          - id: ingest
+            type: io.kestra.plugin.core.flow.Subflow
+            flowId: ingest_to_gcs
+            namespace: zoomcamp.subflows
+            inputs:
+              taxi: "{{ inputs.taxi }}"
+              year: "{{ parent.taskrun.value }}"
+              month: "{{ taskrun.value }}"
+
+          # Commented out until load_to_bq flow is created
+          # - id: load
+          #   type: io.kestra.plugin.core.flow.Subflow
+          #   flowId: load_to_bq
+          #   namespace: zoomcamp.subflows
+          #   inputs:
+          #     taxi: "{{ inputs.taxi }}"
+          #     gcs_object: "{{ inputs.taxi }}/year={{ parent.taskrun.value }}/month={{ taskrun.value }}/{{ inputs.taxi }}_tripdata_{{ parent.taskrun.value }}-{{ taskrun.value }}.parquet"
+

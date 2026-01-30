@@ -20,3 +20,4 @@ terraform.tfvars
 
 #secrets
 kestra-gcp-sa.json
+06_gcp_kv.yaml

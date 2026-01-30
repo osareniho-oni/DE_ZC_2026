@@ -1,0 +1,66 @@
+id: ingest_to_gcs
+namespace: zoomcamp.subflows
+
+description: |
+  Downloads NYC Yellow Taxi parquet files (January-June 2024) and uploads them to GCS.
+  Skips existing files unless backfill is enabled.
+
+inputs:
+  - id: taxi
+    type: STRING
+  - id: year
+    type: INT
+  - id: month
+    type: STRING
+  - id: backfill
+    type: BOOL
+    defaults: False
+
+variables:
+  bucket: wk1-tf-bucket
+
+tasks:
+  - id: filename
+    type: io.kestra.plugin.core.debug.Return
+    format: "{{ inputs.taxi }}_tripdata_{{ inputs.year }}-{{ inputs.month }}.parquet"
+
+  - id: gcs_object_directory
+    type: io.kestra.plugin.core.debug.Return
+    format: "{{ inputs.taxi }}/year={{ inputs.year }}/month={{ inputs.month }}/"
+
+  - id: gcs_object_full_path
+    type: io.kestra.plugin.core.debug.Return
+    format: "{{ outputs.gcs_object_directory.value }}{{ outputs.filename.value }}"
+
+  - id: check_exists
+    type: io.kestra.plugin.gcp.gcs.List
+    from: "gs://{{ vars.bucket }}/{{ outputs.gcs_object_directory.value }}"
+    # Fix: Replaced 'replace' filter with 'split' and 'join' to avoid ClassCastException
+    # The 'replace' filter with backslashes might cause issues in some Pebble versions,
+    # leading to an unexpected attempt to cast a String to a Boolean.
+    # Splitting by '.' and rejoining with an escaped dot achieves the same regex escaping.
+    regExp: "{{ outputs.filename.value | split('.') | join('\\.') }}"
+
+  - id: condition
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ inputs.backfill or outputs.check_exists.blobs == null or outputs.check_exists.blobs | length == 0 }}"
+    then:
+
+      - id: download
+        type: io.kestra.plugin.core.http.Download
+        uri: "https://d37ci6vzurychx.cloudfront.net/trip-data/{{ outputs.filename.value }}"
+        allowFailure: true
+
+      - id: upload
+        type: io.kestra.plugin.gcp.gcs.Upload
+        runIf: "{{ outputs.download.uri != null }}"
+        from: "{{ outputs.download.uri }}"
+        to: "gs://{{ vars.bucket }}/{{ outputs.gcs_object_full_path.value }}"
+
+      - id: missing_file_log
+        type: io.kestra.plugin.core.log.Log
+        runIf: "{{ outputs.download.uri == null }}"
+        level: WARN
+        message: |
+          Skipping missing file:
+          {{ outputs.filename.value }}
