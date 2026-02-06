@@ -1,0 +1,34 @@
+name: taxi_rides_ny
+
+profile: taxi_rides_ny
+
+seed-paths: ["seeds"]
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+snapshot-paths: ["snapshots"]
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Project-level variables
+vars:
+  # Date range for dev environment sampling
+  dev_start_date: '2019-01-01'
+  dev_end_date: '2019-02-01'
+
+
+seeds:
+  # Builds seeds into '<your_schema_name>_raw'
+  taxi_rides_ny:
+    +schema: dbt_gabriel
+
+models:
+  taxi_rides_ny:
+    # Materialize staging models as views, and marts as tables
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: table

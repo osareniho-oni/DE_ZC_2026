@@ -1,0 +1,73 @@
+id: fhv_trip_data_2019
+namespace: zoomcamp
+
+description: |
+  Loads FHV (For-Hire Vehicle) trip data for all 12 months of 2019 into BigQuery.
+  Downloads FHV data from GitHub releases and loads into BigQuery.
+  
+  Data source: https://github.com/DataTalksClub/nyc-tlc-data/releases/tag/fhv
+  Target: BigQuery table dlt-bigquery-484316.wk1_tf_dataset.fhv_tripdata
+
+variables:
+  project: dlt-bigquery-484316
+  dataset: wk1_tf_dataset
+  bucket: wk1-tf-bucket
+  year: 2019
+
+tasks:
+  # --------------------------------------------------------------------------
+  # TASK 1: Process All 12 Months of 2019
+  # --------------------------------------------------------------------------
+  # Iterates through all months of 2019 and processes each one
+  
+  - id: process_months
+    type: io.kestra.plugin.core.flow.ForEach
+    values: ["01","02","03","04","05","06","07","08","09","10","11","12"]
+    tasks:
+
+      # ------------------------------------------------------------------------
+      # SUBTASK 1.1: Ingest FHV Data to GCS
+      # ------------------------------------------------------------------------
+      # Downloads parquet file from GitHub and uploads to GCS
+      
+      - id: ingest
+        type: io.kestra.plugin.core.flow.Subflow
+        flowId: ingest_fhv_to_gcs
+        namespace: zoomcamp.subflows
+        inputs:
+          year: "{{ vars.year }}"
+          month: "{{ taskrun.value }}"
+
+      # ------------------------------------------------------------------------
+      # SUBTASK 1.2: Load FHV Data to BigQuery
+      # ------------------------------------------------------------------------
+      # Loads the parquet file from GCS into BigQuery with proper schema
+      
+      - id: load
+        type: io.kestra.plugin.core.flow.Subflow
+        flowId: load_fhv_to_bq
+        namespace: zoomcamp.subflows
+        inputs:
+          year: "{{ vars.year }}"
+          month: "{{ taskrun.value }}"
+          gcs_object: "fhv/year={{ vars.year }}/month={{ taskrun.value }}/fhv_tripdata_{{ vars.year }}-{{ taskrun.value }}.parquet"
+
+  # --------------------------------------------------------------------------
+  # TASK 2: Log Completion
+  # --------------------------------------------------------------------------
+  # Logs successful completion of the entire workflow
+  
+  - id: completion_log
+    type: io.kestra.plugin.core.log.Log
+    level: INFO
+    message: |
+      ✅ FHV data loading completed successfully!
+      Year: {{ vars.year }}
+      Months processed: All 12 months (January - December)
+      Target table: {{ vars.project }}.{{ vars.dataset }}.fhv_tripdata
+      GCS bucket: {{ vars.bucket }}
+
+pluginDefaults:
+  - type: io.kestra.plugin.gcp
+    values:
+      projectId: "{{ vars.project }}"

@@ -1,0 +1,61 @@
+id: ingest_fhv_to_gcs
+namespace: zoomcamp.subflows
+
+description: |
+  Downloads FHV (For-Hire Vehicle) parquet files and uploads them to GCS.
+  Skips existing files unless backfill is enabled.
+  Uses the same proven pattern as yellow/green taxi ingestion.
+
+inputs:
+  - id: year
+    type: STRING
+  - id: month
+    type: STRING
+  - id: backfill
+    type: BOOL
+    defaults: false
+
+variables:
+  bucket: wk1-tf-bucket
+
+tasks:
+  - id: filename
+    type: io.kestra.plugin.core.debug.Return
+    format: "fhv_tripdata_{{ inputs.year }}-{{ inputs.month }}.parquet"
+
+  - id: gcs_object_directory
+    type: io.kestra.plugin.core.debug.Return
+    format: "fhv/year={{ inputs.year }}/month={{ inputs.month }}/"
+
+  - id: gcs_object_full_path
+    type: io.kestra.plugin.core.debug.Return
+    format: "{{ outputs.gcs_object_directory.value }}{{ outputs.filename.value }}"
+
+  - id: check_exists
+    type: io.kestra.plugin.gcp.gcs.List
+    from: "gs://{{ vars.bucket }}/{{ outputs.gcs_object_directory.value }}"
+    regExp: "{{ outputs.filename.value | split('.') | join('\\.') }}"
+
+  - id: condition
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ inputs.backfill or outputs.check_exists.blobs == null or outputs.check_exists.blobs | length == 0 }}"
+    then:
+
+      - id: download
+        type: io.kestra.plugin.core.http.Download
+        uri: "https://d37ci6vzurychx.cloudfront.net/trip-data/{{ outputs.filename.value }}"
+        allowFailure: true
+
+      - id: upload
+        type: io.kestra.plugin.gcp.gcs.Upload
+        runIf: "{{ outputs.download.uri is defined }}"
+        from: "{{ outputs.download.uri }}"
+        to: "gs://{{ vars.bucket }}/{{ outputs.gcs_object_full_path.value }}"
+
+      - id: missing_file_log
+        type: io.kestra.plugin.core.log.Log
+        runIf: "{{ outputs.download.uri is not defined }}"
+        level: WARN
+        message: |
+          Skipping missing file:
+          {{ outputs.filename.value }}
