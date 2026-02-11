@@ -1,0 +1,34 @@
+# Zoomcamp template: pipeline.yml
+# Goal: help you learn Bruin pipeline configuration patterns. This file is configured for the NYC taxi pipeline.
+#
+# Key docs:
+# - Pipeline files: https://getbruin.com/docs/bruin/getting-started/pipeline
+# - Variables (JSON Schema): https://getbruin.com/docs/bruin/getting-started/pipeline-variables
+# - Run command: https://getbruin.com/docs/bruin/commands/run
+
+# Pipeline name configured below.
+name: nyctaxi-pipeline
+
+# Schedule configured below.
+schedule: "monthly"
+
+# Earliest date configured below (full-refresh/backfills)
+# Format: YYYY-MM-DD
+start_date: "2021-01-01"
+
+default_connections:
+  duckdb: duckdb-default
+
+# Pipeline variables defined below (JSON Schema + defaults)
+variables:
+  # `taxi_types` variable defined with sensible defaults
+  taxi_types:
+    type: array
+    items:
+      type: string
+    default:
+      - yellow
+      - green
+#   other_string_var: (optional) Add your own variable and use it in both Python and SQL assets.
+#     type: string
+#     default: "my_value"

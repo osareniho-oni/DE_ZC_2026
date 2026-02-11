@@ -21,3 +21,8 @@ terraform.tfvars
 #secrets
 kestra-gcp-sa.json
 06_gcp_kv.yaml
+
+.bruin.yml
+logs/runs
+logs/*.log
+*.py[cod]
