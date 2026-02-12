@@ -26,3 +26,7 @@ kestra-gcp-sa.json
 logs/runs
 logs/*.log
 *.py[cod]
+logs/queries
+
+
+05-data-platforms1

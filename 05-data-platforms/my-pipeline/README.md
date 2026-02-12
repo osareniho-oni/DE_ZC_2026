@@ -189,17 +189,17 @@ Please refer to the doc page for more details:
 - Python asset to fetch NYC Taxi data from the TLC public endpoint
 - Seed asset to load a static payment type lookup table from CSV
 - Use `append` strategy for raw ingestion (handle duplicates downstream)
-Implemented: ingestion assets configured at `pipeline/assets/ingestion/trips.py` and `pipeline/assets/ingestion/payment_lookup.asset.yml`
+- Follow the TODO instructions in `pipeline/assets/ingestion/trips.py` and `pipeline/assets/ingestion/payment_lookup.asset.yml`
 
 ### 3.3 Staging Layer
 - SQL asset to clean, deduplicate, and join with lookup to enrich raw trip data
 - Use `time_interval` strategy for incremental processing
-Implemented: staging logic at `pipeline/assets/staging/trips.sql`
+- Follow the TODO instructions in `pipeline/assets/staging/trips.sql`
 
 ### 3.4 Reports Layer
 - SQL asset to aggregate staging data into analytics-ready metrics
 - Use `time_interval` strategy and same `incremental_key` as staging for consistency
-Implemented: report logic at `pipeline/assets/reports/trips_report.sql`
+- Follow the TODO instructions in `pipeline/assets/reports/trips_report.sql`
 
 ### 3.5 Running and Validating
 
@@ -323,7 +323,7 @@ Start with running `bruin init zoomcamp` to initialize the project.
 - Create `.bruin.yml` with a DuckDB connection named `duckdb-default`
 - Configure `pipeline.yml`: set name, schedule (monthly), start_date, default_connections, and the `taxi_types` variable (array of strings)
 
-### 2. Build Assets (implemented in this repo)
+### 2. Build Assets (follow TODOs in each file)
 
 NYC Taxi Raw Trip Source Details:
 - **URL**: `https://d37ci6vzurychx.cloudfront.net/trip-data/`
