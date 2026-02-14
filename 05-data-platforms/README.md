@@ -1,5 +1,7 @@
 # NYC Taxi Data Platform: Production-Grade ELT Pipeline
 
+> *Inspired by [DataTalksClub](https://datatalks.club/) Data Engineering Zoomcamp 2026*
+
 [![Data Engineering](https://img.shields.io/badge/Data-Engineering-blue)](https://github.com/bruin-data/bruin)
 [![Python](https://img.shields.io/badge/Python-3.11-green)](https://www.python.org/)
 [![SQL](https://img.shields.io/badge/SQL-DuckDB%20%7C%20BigQuery-orange)](https://duckdb.org/)
@@ -405,15 +407,19 @@ GROUP BY payment_type_name
 ORDER BY total_trips DESC;
 
 -- Peak hour analysis
-SELECT 
-    EXTRACT(HOUR FROM pickup_datetime) as hour_of_day,
-    COUNT(*) as trip_count,
-    AVG(trip_distance) as avg_distance,
-    AVG(fare_amount) as avg_fare
-FROM staging.trips
-WHERE pickup_date = '2022-01-15'
-GROUP BY EXTRACT(HOUR FROM pickup_datetime)
-ORDER BY hour_of_day;
+WITH hourly AS (
+    SELECT
+        EXTRACT(hour FROM pickup_datetime) AS hour_of_day,
+        COUNT(*) AS trip_count
+    FROM staging.trips
+    WHERE pickup_datetime >= DATE '2022-01-01'
+      AND pickup_datetime <  DATE '2022-02-01'
+    GROUP BY hour_of_day
+)
+SELECT *
+FROM hourly
+ORDER BY trip_count DESC
+LIMIT 1;
 ```
 
 ---
